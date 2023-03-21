@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cellular Automata</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="trans container">
+    <h1 class ="trans" >Cellular Automata</h1>
+    
+    <div class="controls">
+      <div>
+        <button id="startButton">Start</button>
+        <button id="stopButton">Stop</button>
+      </div>
+      <div >
+        <label class = "trans" for="variation-select">Variation:</label>
+        <select class = "trans" id="variation-select">
+          <option value="game-of-life" selected>Game of Life</option>
+          <option value="highlife">HighLife</option>
+          <option value="day-night">Day & Night</option>
+        </select>
+      </div>
+      <div>
+        <label class = "trans" for="CanvasSize-input">Size:</label>
+        <input class = "trans" type="number" id="CanvasSize-input" value="50" min="5" max="80">
+      </div>
+    </div>
+    <div class = "trans" id="variation-description"></div>
+    <div class=" trans color-legend">
+      <div class=" trans color red"></div><span>Less than 2 live neighbors</span>
+      <div class="trans color yellow"></div><span>Exactly 2 live neighbors</span>
+      <div class="trans color blue"></div><span>Exactly 3 live neighbors</span>
+      <div class="trans color green"></div><span>More than 3 live neighbors</span>
+    </div>
+    
+    <div class="trans canvas-container">
+      <canvas class = "trans" id="gameCanvas"></canvas>
+    </div>
+    
+  </div>
+  <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        let cellSize = 12;
+        let rows = 50;
+        let cols = 50;
+        let interval;
+        let grid;
+        let oldGrid;
+        let rate = 500;
+        let pause = false;
+
+        canvas.width = cellSize * cols;
+        canvas.height = cellSize * rows;
+
+
+        const variationSelect = document.getElementById('variation-select');
+        let selectedVariation = variationSelect.value;
+
+        variationSelect.addEventListener('change', (event) => {
+          selectedVariation = event.target.value;
+        });
+
+        const CanvasSizeInput = document.getElementById('CanvasSize-input');
+        const colsInput = document.getElementById('cols-input');
+
+        const variationDescriptions = {
+          'game-of-life': 'Game of Life: A classic cellular automaton with simple rules that produce complex behavior.',
+          'highlife': 'HighLife: Similar to the Game of Life but with an additional birth condition that leads to unique patterns.',
+          'day-night': 'Day & Night: A variation with different birth and survival rules that create dynamic patterns and tend to stagnate less.'
+        };
+
+        const variationDescriptionElement = document.getElementById('variation-description');
+        variationDescriptionElement.textContent = variationDescriptions[selectedVariation];
+
+        variationSelect.addEventListener('change', (event) => {
+          selectedVariation = event.target.value;
+          variationDescriptionElement.textContent = variationDescriptions[selectedVariation];
+        });
+
+
+        CanvasSizeInput.addEventListener('change', (event) => {
+          rows = parseInt(event.target.value);
+          cols = parseInt(event.target.value);
+
+          cellSize = 600/cols;
+
+          canvas.height = rows * cellSize;
+          canvas.width = cols * cellSize;
+          grid = createGrid(rows, cols);
+          drawGrid();
+        });
+
+        function createGrid(rows, cols) {
+          return new Array(rows).fill(null).map(() => new Array(cols).fill(false));
+        }
+
+        function drawGrid() {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+          const currentTime = new Date().getTime();
+
+
+          for (let row = 0; row < rows; row++) {
+            for (let col = 0; col < cols; col++) {
+              ctx.beginPath();
+              ctx.arc(
+                col * cellSize + cellSize / 2,
+                row * cellSize + cellSize / 2,
+                cellSize / 2 - 1, // Reduce the radius by 1 to have a small gap between circles
+                0,
+                Math.PI * 2
+              );
+              ctx.closePath();
+
+              const liveNeighbors = countLiveNeighbors(row, col);
+              let color = 'red';
+              if (liveNeighbors == 2)
+                color = 'yellow';
+              if (liveNeighbors == 3)
+                color = 'blue';
+                if (liveNeighbors > 3)
+                color = 'green';
+              
+              if (grid[row][col] && oldGrid ==null || grid[row][col] && pause == true)
+              {
+                ctx.fillStyle = color;
+                ctx.fill();
+              }
+              if (oldGrid != null && grid[row][col] && oldGrid[row][col]) 
+              {
+                ctx.fillStyle = color;
+                ctx.fill();
+              } else {
+                ctx.strokeStyle = 'rgba(0, 0, 0, 0.2)';
+                ctx.stroke();
+              }
+            }
+          }
+        }
+
+
+
+        function animateCell(liveNeighbors, row, col, animationName) {
+        const cellElement = document.createElement('div');
+        cellElement.style.width = `${cellSize}px`;
+        cellElement.style.height = `${cellSize}px`;
+
+
+        cellElement.style.position = 'absolute';
+        cellElement.style.left = `${col * cellSize +145}px`;
+        cellElement.style.top = `${row * cellSize +1}px`;
+
+        if (liveNeighbors < 2)
+          cellElement.style.backgroundColor = 'red';
+        if (liveNeighbors == 2)
+          cellElement.style.backgroundColor = 'yellow';
+        if (liveNeighbors == 3)
+          cellElement.style.backgroundColor = 'blue';
+        if (liveNeighbors > 3)
+          cellElement.style.backgroundColor = 'green';
+        
+        cellElement.style.borderRadius = `${cellSize / 2}px`;
+
+        cellElement.classList.add('cell-animation');
+        cellElement.style.animationName = animationName;
+        cellElement.style.animationDuration = '0.5s';
+        
+        const canvasContainer = document.querySelector('.canvas-container');
+canvasContainer.appendChild(cellElement);
+
+        setTimeout(() => {
+          cellElement.remove();
+        }, rate);
+      }
+
+      function updateGrid() {
+  const newGrid = createGrid(rows, cols);
+
+  for (let row = 0; row < rows; row++) {
+    for (let col = 0; col < cols; col++) {
+      const liveNeighbors = countLiveNeighbors(row, col);
+      const isAlive = grid[row][col];
+
+      let shouldLive = false;
+      if (selectedVariation === 'game-of-life') {
+        shouldLive = (isAlive && (liveNeighbors === 2 || liveNeighbors === 3)) || (!isAlive && liveNeighbors === 3);
+      } else if (selectedVariation === 'highlife') {
+        shouldLive = (isAlive && (liveNeighbors === 2 || liveNeighbors === 3)) || (!isAlive && (liveNeighbors === 3 || liveNeighbors === 6));
+      } else if (selectedVariation === 'day-night') {
+        shouldLive = (isAlive && (liveNeighbors === 3 || liveNeighbors === 4 || liveNeighbors === 6 || liveNeighbors === 7 || liveNeighbors === 8)) || (!isAlive && (liveNeighbors === 3 || liveNeighbors === 6 || liveNeighbors === 7 || liveNeighbors === 8));
+      }
+
+      newGrid[row][col] = shouldLive;
+      if (isAlive !== shouldLive) {
+        animateCell(liveNeighbors, row, col, shouldLive ? 'pop-up' : 'pop-out');
+      }
+    }
+  }
+
+  for (let row = 0; row < rows; row++) {
+    for (let col = 0; col < cols; col++) {
+      const isAlive = grid[row][col];
+      const shouldLive = newGrid[row][col];
+
+      
+    }
+  }
+  oldGrid = grid;
+  grid = newGrid;
+  drawGrid();
+}
+
+
+
+
+
+
+        function countLiveNeighbors(row, col) {
+          let count = 0;
+          for (let r = -1; r <= 1; r++) {
+            for (let c = -1; c <= 1; c++) {
+              if (r === 0 && c === 0) continue;
+              const newRow = row + r;
+              const newCol = col + c;
+              if (newRow >= 0 && newRow < rows && newCol >= 0 && newCol < cols && grid[newRow][newCol]) {
+                count++;
+              }
+            }
+          }
+          return count;
+        }
+        
+
+        function startGame() {
+          clearInterval(interval);
+          pause = false
+          interval = setInterval(() => {
+            updateGrid();
+            drawGrid();
+          }, rate);
+        }
+
+        function stopGame() {
+          clearInterval(interval);
+          pause = true
+          updateGrid();
+          drawGrid();
+        }
+
+        document.getElementById('startButton').addEventListener('click', startGame);
+        document.getElementById('stopButton').addEventListener('click', stopGame);
+
+        let lastMousePosition = null;
+
+        function getMousePosition(event) {
+          const rect = canvas.getBoundingClientRect();
+          const x = event.clientX - rect.left;
+          const y = event.clientY - rect.top;
+          return { x, y };
+        }
+
+        function toggleCell(event) {
+          const mousePosition = getMousePosition(event);
+          const row = Math.floor(mousePosition.y / cellSize);
+          const col = Math.floor(mousePosition.x / cellSize);
+
+          if (lastMousePosition) {
+            const lastRow = Math.floor(lastMousePosition.y / cellSize);
+            const lastCol = Math.floor(lastMousePosition.x / cellSize);
+            const rowDiff = Math.abs(row - lastRow);
+            const colDiff = Math.abs(col - lastCol);
+            const stepCount = Math.max(rowDiff, colDiff);
+
+            for (let step = 0; step <= stepCount; step++) {
+              const interpolatedRow = lastRow + Math.round((row - lastRow) * (step / stepCount));
+              const interpolatedCol = lastCol + Math.round((col - lastCol) * (step / stepCount));
+              
+              if (interpolatedRow >= 0 && interpolatedRow < rows && interpolatedCol >= 0 && interpolatedCol < cols) {
+                grid[interpolatedRow][interpolatedCol] = true;
+              }
+            }
+          }
+
+          if (row >= 0 && row < rows && col >= 0 && col < cols) {
+            grid[row][col] = true;
+          }
+
+          drawGrid();
+          lastMousePosition = mousePosition;
+        }
+
+
+
+        canvas.addEventListener('mousedown', (event) => {
+          canvas.addEventListener('mousemove', toggleCell);
+          toggleCell(event);
+        });
+
+        canvas.addEventListener('mouseup', () => {
+          canvas.removeEventListener('mousemove', toggleCell);
+          lastMousePosition = null;
+        });
+
+        // Start the game with an empty grid
+        grid = createGrid(rows, cols);
+        drawGrid();
+
+
+        </script>
+    </body>
+    </html>
+    
