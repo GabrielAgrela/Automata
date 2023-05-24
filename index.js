@@ -8,11 +8,15 @@ const server = http.createServer((req, res) => {
     const filePath = path.join(__dirname, 'index.html');
     fs.readFile(filePath, (err, data) => {
       if (err) {
-        res.writeHead(500, { 'Content-Type': 'text/html' });
+        res.writeHead(500, {
+          'Content-Type': 'text/html'
+        });
         res.write('<h1>Internal Server Error</h1>');
         res.end();
       } else {
-        res.writeHead(200, { 'Content-Type': 'text/html' });
+        res.writeHead(200, {
+          'Content-Type': 'text/html'
+        });
         res.write(data);
         res.end();
       }
@@ -22,18 +26,42 @@ const server = http.createServer((req, res) => {
     const filePath = path.join(__dirname, 'styles.css');
     fs.readFile(filePath, (err, data) => {
       if (err) {
-        res.writeHead(500, { 'Content-Type': 'text/html' });
+        res.writeHead(500, {
+          'Content-Type': 'text/html'
+        });
         res.write('<h1>Internal Server Error</h1>');
         res.end();
       } else {
-        res.writeHead(200, { 'Content-Type': 'text/css' });
+        res.writeHead(200, {
+          'Content-Type': 'text/css'
+        });
+        res.write(data);
+        res.end();
+      }
+    });
+  } else if (req.url === '/combinedpdf.pdf') {
+    // Serve the combinedpdf.pdf file
+    const filePath = path.join(__dirname, 'combinedpdf.pdf');
+    fs.readFile(filePath, (err, data) => {
+      if (err) {
+        res.writeHead(500, {
+          'Content-Type': 'text/html'
+        });
+        res.write('<h1>Internal Server Error</h1>');
+        res.end();
+      } else {
+        res.writeHead(200, {
+          'Content-Type': 'application/pdf'
+        });
         res.write(data);
         res.end();
       }
     });
   } else {
     // Serve a 404 page for any other requests
-    res.writeHead(404, { 'Content-Type': 'text/html' });
+    res.writeHead(404, {
+      'Content-Type': 'text/html'
+    });
     res.write('<h1>Page Not Found</h1>');
     res.end();
   }
